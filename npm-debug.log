@@ -1,0 +1,185 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/node', '/usr/bin/npm', 'install', 'countdown' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.37
+4 verbose node symlink /usr/bin/node
+5 warn package.json multipart@0.1.5 No repository field.
+6 warn package.json multipart@0.1.5 No README data
+7 warn package.json path@0.11.14 path is also the name of a node core module.
+8 verbose readDependencies using package.json deps
+9 verbose cache add [ 'countdown@^2.6.0', null ]
+10 verbose cache add name=undefined spec="countdown@^2.6.0" args=["countdown@^2.6.0",null]
+11 verbose parsed url { protocol: null,
+11 verbose parsed url   slashes: null,
+11 verbose parsed url   auth: null,
+11 verbose parsed url   host: null,
+11 verbose parsed url   port: null,
+11 verbose parsed url   hostname: null,
+11 verbose parsed url   hash: null,
+11 verbose parsed url   search: null,
+11 verbose parsed url   query: null,
+11 verbose parsed url   pathname: 'countdown@^2.6.0',
+11 verbose parsed url   path: 'countdown@^2.6.0',
+11 verbose parsed url   href: 'countdown@^2.6.0' }
+12 verbose cache add name="countdown" spec="^2.6.0" args=["countdown","^2.6.0"]
+13 verbose parsed url { protocol: null,
+13 verbose parsed url   slashes: null,
+13 verbose parsed url   auth: null,
+13 verbose parsed url   host: null,
+13 verbose parsed url   port: null,
+13 verbose parsed url   hostname: null,
+13 verbose parsed url   hash: null,
+13 verbose parsed url   search: null,
+13 verbose parsed url   query: null,
+13 verbose parsed url   pathname: '^2.6.0',
+13 verbose parsed url   path: '^2.6.0',
+13 verbose parsed url   href: '^2.6.0' }
+14 verbose addNamed [ 'countdown', '^2.6.0' ]
+15 verbose addNamed [ null, '>=2.6.0-0 <3.0.0-0' ]
+16 silly lockFile 064659f0-countdown-2-6-0 countdown@^2.6.0
+17 verbose lock countdown@^2.6.0 /home/daffo-lap-268/.npm/064659f0-countdown-2-6-0.lock
+18 silly addNameRange { name: 'countdown',
+18 silly addNameRange   range: '>=2.6.0-0 <3.0.0-0',
+18 silly addNameRange   hasData: false }
+19 verbose request where is /countdown
+20 verbose request registry https://registry.npmjs.org/
+21 verbose request id 5c41c14355c694e3
+22 verbose url raw /countdown
+23 verbose url resolving [ 'https://registry.npmjs.org/', './countdown' ]
+24 verbose url resolved https://registry.npmjs.org/countdown
+25 verbose request where is https://registry.npmjs.org/countdown
+26 info trying registry request attempt 1 at 10:22:20
+27 verbose etag "BF6OBE540B1EMIEM8P69XNGTW"
+28 http GET https://registry.npmjs.org/countdown
+29 http 304 https://registry.npmjs.org/countdown
+30 silly registry.get cb [ 304,
+30 silly registry.get   { date: 'Mon, 31 Aug 2015 04:52:21 GMT',
+30 silly registry.get     via: '1.1 varnish',
+30 silly registry.get     'cache-control': 'max-age=60',
+30 silly registry.get     etag: '"BF6OBE540B1EMIEM8P69XNGTW"',
+30 silly registry.get     age: '43',
+30 silly registry.get     connection: 'keep-alive',
+30 silly registry.get     'x-served-by': 'cache-sin6922-SIN',
+30 silly registry.get     'x-cache': 'HIT',
+30 silly registry.get     'x-cache-hits': '1',
+30 silly registry.get     'x-timer': 'S1440996741.121546,VS0,VE0',
+30 silly registry.get     vary: 'Accept' } ]
+31 verbose etag https://registry.npmjs.org/countdown from cache
+32 silly addNameRange number 2 { name: 'countdown', range: '>=2.6.0-0 <3.0.0-0', hasData: true }
+33 silly addNameRange versions [ 'countdown',
+33 silly addNameRange   [ '2.1.3', '2.2.0', '2.3.0', '2.5.2', '2.5.3', '2.6.0' ] ]
+34 verbose addNamed [ 'countdown', '2.6.0' ]
+35 verbose addNamed [ '2.6.0', '2.6.0' ]
+36 silly lockFile 23bfda9a-countdown-2-6-0 countdown@2.6.0
+37 verbose lock countdown@2.6.0 /home/daffo-lap-268/.npm/23bfda9a-countdown-2-6-0.lock
+38 silly lockFile 23bfda9a-countdown-2-6-0 countdown@2.6.0
+39 silly lockFile 23bfda9a-countdown-2-6-0 countdown@2.6.0
+40 silly lockFile 064659f0-countdown-2-6-0 countdown@^2.6.0
+41 silly lockFile 064659f0-countdown-2-6-0 countdown@^2.6.0
+42 silly resolved [ { name: 'countdown',
+42 silly resolved     version: '2.6.0',
+42 silly resolved     description: 'A simple JavaScript API for producing an accurate, intuitive description of the timespan between two Date instances.',
+42 silly resolved     homepage: 'http://countdownjs.org',
+42 silly resolved     author: { name: 'Stephen McKamey', url: 'http://mck.me' },
+42 silly resolved     license: 'MIT',
+42 silly resolved     repository:
+42 silly resolved      { type: 'git',
+42 silly resolved        url: 'git+https://github.com/mckamey/countdownjs.git' },
+42 silly resolved     files: [ 'countdown.js', 'README.md', 'LICENSE.txt' ],
+42 silly resolved     main: 'countdown.js',
+42 silly resolved     keywords:
+42 silly resolved      [ 'countdown',
+42 silly resolved        'timer',
+42 silly resolved        'clock',
+42 silly resolved        'date',
+42 silly resolved        'time',
+42 silly resolved        'timespan',
+42 silly resolved        'year',
+42 silly resolved        'month',
+42 silly resolved        'week',
+42 silly resolved        'day',
+42 silly resolved        'hour',
+42 silly resolved        'minute',
+42 silly resolved        'second' ],
+42 silly resolved     gitHead: '472b65e8845f03175d3762fe110e4c9770bed57c',
+42 silly resolved     bugs: { url: 'https://github.com/mckamey/countdownjs/issues' },
+42 silly resolved     _id: 'countdown@2.6.0',
+42 silly resolved     scripts: {},
+42 silly resolved     _shasum: '677fb8e3a9d4cc4e76415901ba253b518af34177',
+42 silly resolved     _from: 'countdown@^2.6.0',
+42 silly resolved     _npmVersion: '2.11.2',
+42 silly resolved     _nodeVersion: '0.12.5',
+42 silly resolved     _npmUser: { name: 'mckamey', email: 'stephen@mckamey.com' },
+42 silly resolved     dist:
+42 silly resolved      { shasum: '677fb8e3a9d4cc4e76415901ba253b518af34177',
+42 silly resolved        tarball: 'http://registry.npmjs.org/countdown/-/countdown-2.6.0.tgz' },
+42 silly resolved     maintainers: [ [Object] ],
+42 silly resolved     directories: {},
+42 silly resolved     _resolved: 'https://registry.npmjs.org/countdown/-/countdown-2.6.0.tgz',
+42 silly resolved     readme: 'ERROR: No README data found!' } ]
+43 info install countdown@2.6.0 into /home/daffo-lap-268/Rockstar/globalrockstar-frontend
+44 info installOne countdown@2.6.0
+45 verbose node_modules/countdown unbuild
+46 info preuninstall countdown@2.6.0
+47 info uninstall countdown@2.6.0
+48 verbose true,/home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules,/home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules unbuild countdown@2.6.0
+49 info postuninstall countdown@2.6.0
+50 verbose tar unpack /home/daffo-lap-268/.npm/countdown/2.6.0/package.tgz
+51 silly lockFile 91c79370--frontend-node-modules-countdown tar:///home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown
+52 verbose lock tar:///home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown /home/daffo-lap-268/.npm/91c79370--frontend-node-modules-countdown.lock
+53 silly lockFile 4368cb26--npm-countdown-2-6-0-package-tgz tar:///home/daffo-lap-268/.npm/countdown/2.6.0/package.tgz
+54 verbose lock tar:///home/daffo-lap-268/.npm/countdown/2.6.0/package.tgz /home/daffo-lap-268/.npm/4368cb26--npm-countdown-2-6-0-package-tgz.lock
+55 silly gunzTarPerm modes [ '755', '644' ]
+56 silly gunzTarPerm extractEntry package.json
+57 silly gunzTarPerm extractEntry README.md
+58 silly gunzTarPerm extractEntry countdown.js
+59 silly gunzTarPerm extractEntry LICENSE.txt
+60 silly gunzTarPerm extractEntry readme.html
+61 silly lockFile 91c79370--frontend-node-modules-countdown tar:///home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown
+62 silly lockFile 91c79370--frontend-node-modules-countdown tar:///home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown
+63 silly lockFile 4368cb26--npm-countdown-2-6-0-package-tgz tar:///home/daffo-lap-268/.npm/countdown/2.6.0/package.tgz
+64 silly lockFile 4368cb26--npm-countdown-2-6-0-package-tgz tar:///home/daffo-lap-268/.npm/countdown/2.6.0/package.tgz
+65 info preinstall countdown@2.6.0
+66 verbose readDependencies using package.json deps
+67 verbose readDependencies using package.json deps
+68 silly resolved []
+69 verbose about to build /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown
+70 info build /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/countdown
+71 verbose linkStuff [ false,
+71 verbose linkStuff   false,
+71 verbose linkStuff   false,
+71 verbose linkStuff   '/home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules' ]
+72 info linkStuff countdown@2.6.0
+73 verbose linkBins countdown@2.6.0
+74 verbose linkMans countdown@2.6.0
+75 verbose rebuildBundles countdown@2.6.0
+76 info install countdown@2.6.0
+77 info postinstall countdown@2.6.0
+78 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-bower-files requires gulp-util@'^2.2.14' but will load
+78 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+78 warn unmet dependency which is version 3.0.6
+79 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-combine-media-queries requires gulp-util@'~2.2.14' but will load
+79 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+79 warn unmet dependency which is version 3.0.6
+80 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-jsmin requires gulp-util@'~2.2.0' but will load
+80 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+80 warn unmet dependency which is version 3.0.6
+81 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-browserify requires gulp-util@'~2.2.5' but will load
+81 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+81 warn unmet dependency which is version 3.0.6
+82 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-jsdoc requires gulp-util@'~2.2.14' but will load
+82 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+82 warn unmet dependency which is version 3.0.6
+83 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp.spritesmith requires gulp-util@'~2.2.14' but will load
+83 warn unmet dependency /home/daffo-lap-268/Rockstar/globalrockstar-frontend/node_modules/gulp-util,
+83 warn unmet dependency which is version 3.0.6
+84 error peerinvalid The package good does not satisfy its siblings' peerDependencies requirements!
+84 error peerinvalid Peer good-file@5.0.1 wants good@>= 6.x.x
+84 error peerinvalid Peer good-console@5.0.2 wants good@>= 6.x.x
+85 error System Linux 3.13.0-57-generic
+86 error command "/usr/bin/node" "/usr/bin/npm" "install" "countdown"
+87 error cwd /home/daffo-lap-268/Rockstar/globalrockstar-frontend
+88 error node -v v0.10.37
+89 error npm -v 1.4.28
+90 error code EPEERINVALID
+91 verbose exit [ 1, true ]

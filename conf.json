@@ -1,0 +1,21 @@
+{
+    "tags": {
+        "allowUnknownTags": true,
+         "dictionaries": ["jsdoc","closure"]
+    },
+        "source": {
+        "include": [ "index.js", "newrelic.js", "gulpfile.js", "app.js", "controllers", "routes", "lib", "helpers", "public/scripts/app.js"],
+        "includePattern": ".+\\.js(doc)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "plugins": [],
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": false,
+        "default": {
+            "outputSourceFiles": true
+        }
+    },"opts": {
+    "destination": "./docs/"
+    }
+}

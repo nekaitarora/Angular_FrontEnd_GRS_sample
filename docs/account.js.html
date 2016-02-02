@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/account.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/account.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**@module Controllers:Accountjs
+ * @description Handels user profile and his uploads
+ * @requires hapi
+ * @requires ../lib/api
+ * @requires ../config reading configuration
+ * @requires q node.js library for promises
+ * @requires ../lib/converterrors Handles with error
+ * @requires image-size node.js library for get dimensions of any image file
+ * @requires lodash node.js library for provides clean, performant methods for manipulating objects and collections.
+ **/
+'use strict';
+
+var api = require('../lib/api'),
+    Hapi = require('hapi'),
+    config = require('../config'),
+    Q = require('q'),
+    convertErrors = require('../lib/converterrors'),
+    size = require('image-size'),
+    _ = require('lodash');
+
+/**@function
+    @name Controllers:Accountjs.updateProfile
+    @param {object} payload - The Request Payload
+    @param {string} token - token provided to user when he logged in the system in
+*/
+var updateProfile = function (payload, token) {
+    payload.year = parseFloat(payload.year);
+    return api.put('/profile', payload, token);
+};
+/** @function
+    @name Controllers:Accountjs.handleUploadSong
+    @description handler for uploaded songs .
+    @param {object} file - The Request File Payload
+*/
+var handleUploadSong = function (file) {
+    var dfd = Q.defer();
+
+    if (file) {
+        if (file.headers['content-type'].indexOf('mp3') &lt; 0 &amp;&amp; file.headers['content-type'].indexOf('mpeg') &lt; 0) {
+            var error = Hapi.error.badRequest('only mp3s allowed');
+            error.output.statusCode = 499;
+            error.reformat();
+            dfd.resolve(error.output);
+            return dfd.promise;
+        }
+
+        return api.uploadSong({
+            slug: file.filename,
+            file: file
+        });
+    } else {
+        dfd.resolve();
+        return dfd.promise;
+    }
+};
+
+
+var _getCountry = require('../helpers/getCountry');
+/**
+    @function
+    @name Controllers:Accountjs.getCountry
+    @description Sets the location of user in sessions.
+    @param {object} req - The Request object
+*/
+var getCountry = function (req) {
+    return req.session.get('location') || _getCountry(req.resources.profile, req.resources.ip);
+};
+/**
+    @function
+    @name Controllers:Accountjs.handleUpload
+    @description handler for uploaded Images .
+    @param {object} file - The Request image File Payload
+    @param {object} slug
+*/
+var handleUpload = function (file, slug) {
+    var dfd = Q.defer();
+    //size(file.path));
+    if (file) {
+        if (file.headers['content-type'].indexOf('image') !== 0) {
+            var error = Hapi.error.badRequest('invalid image!');
+            error.output.statusCode = 499;
+            error.reformat();
+            dfd.reject(error.output);
+            return dfd.promise;
+        } else if (size(file.path).width &lt; 500 &amp;&amp; size(file.path).height &lt; 500) {
+            var error1 = Hapi.error.badRequest('image too small!');
+            error1.output.statusCode = 498;
+            error1.reformat();
+            console.log(error1);
+            dfd.reject(error1.output);
+            return dfd.promise;
+        }
+
+        return api.uploadImage({
+            file: file,
+            slug: slug
+        });
+    } else {
+        dfd.resolve();
+        return dfd.promise;
+    }
+};
+
+module.exports = {
+    /**
+     @function
+     @name Controllers:Accountjs.getProfile
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @param {object} server - Server object
+     * @description It checks isComplete, isVerified, Token, type(FAN or ARTIST) from session
+     * then renders profile/edit-artist OR profile/edit-fan view according to type
+    **/
+    getProfile: function (req, reply, server) {
+        var template, token;
+
+        token = req.session.get('token');
+        /** Checking isComplete property is set in session or not **/
+        if (req.isComplete &amp;&amp; !req.session.get('isComplete')) {
+            req.session.set('isComplete', true);
+        }
+        /** Checking isVerified property is set in session or not **/
+        if (req.isVerified &amp;&amp; !req.session.get('isVerified')) {
+            req.session.set('isVerified', true);
+        }
+        /** Checking Token is set in session or not **/
+        if (!token) {
+            reply().redirect('/');
+        }
+        /** Checking type(FAN or ARTIST) property is set in session or not **/
+        if (req.session.get('type') == 'fan') {
+            template = 'fan';
+        } else {
+            template = 'artist';
+        }
+
+        Q.all([
+            api.get('/profile', token),
+            api.get('/config/genres'),
+            api.get('/config/countries'),
+            api.get('/config/currencies')
+        ]).spread(function (profile, genres, countries, currencies) {
+            var user = req.session.flash('payload')[0] || profile;
+
+            console.log(JSON.stringify(user, null, 2));
+
+            var data = {
+                metatags: {
+                    title: server.i18n.__('meta-title-profile-' + template)
+                },
+                user: user,
+                error: req.session.flash('error')[0] || false,
+                genres: genres,
+                countries: countries,
+                //currencies: currencies,
+                message: req.session.flash('message'),
+                hasActiveProject: req.resources.hasActiveProject
+            };
+
+            if (template === 'artist') {
+                data.paypal = {
+                    email: user.paypal_email,
+                    firstname: user.paypal_firstname,
+                    lastname: user.paypal_lastname,
+                    verified: (profile.paypal_verified === true || profile.paypal_verified === "1"),
+                    currency: user.paypal_currency,
+                    supported_currencies: currencies,
+                    currencies: user.paypal_currencies,
+                    country: user.country ? user.country : getCountry(req)
+                };
+            }
+
+            if (data.user &amp;&amp; !data.user.contact) {
+                data.user.contact = {};
+            }
+
+            reply.view('profile/edit-' + template, data);
+        })
+            .fail(console.error.bind(console));
+    },
+    /**
+     * @function
+       @name  Controllers:Accountjs.updatePayPalAccount
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @description Update paypal Account information of user
+    **/
+    updatePayPalAccount: function (req, reply) {
+        var token = req.session.get('token');
+
+        return api.put('/artists/' + req.resources.profile._id + '/update-paypal-account', {
+            paypal_firstname: req.payload.paypal_firstname,
+            paypal_lastname: req.payload.paypal_lastname,
+            paypal_email: req.payload.paypal_email,
+            paypal_currency: req.payload.paypal_currency,
+            paypal_verified: req.payload.paypal_verified
+        }, req.session.get('token'))
+            .then(function (result) {
+                console.dir(result);
+                reply().code(200);
+            })
+            .fail(function (err) {
+                console.error(err);
+                reply(err);
+            });
+    },
+    /**
+     * @function
+     * @name  Controllers:Accountjs.updateProfile
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @description Update Profile information of user
+    **/
+    updateProfile: function (req, reply) {
+        var template, token;
+
+        token = req.session.get('token');
+
+        if (!token) {
+            reply().redirect('/');
+        }
+
+        if (req.session.get('type') == 'fan') {
+            template = 'fan';
+        } else {
+            template = 'artist';
+        }
+
+        //var date = data || false;
+
+        if (req.payload.birthdate) {
+            req.payload.birthdate = req.payload.birthdate + 'T00:00:00.000Z';
+        }
+        if (req.payload.contact &amp;&amp; req.payload.contact.birthdate) {
+            req.payload.contact.birthdate = req.payload.contact.birthdate + 'T00:00:00.000Z';
+        }
+        if (req.payload.genres &amp;&amp; !req.payload.genres.push) {
+            req.payload.genres = [req.payload.genres];
+        }
+        if (req.payload.genres_music &amp;&amp; !req.payload.genres_music.push) {
+            req.payload.genres_music = [req.payload.genres_music];
+        }
+        if (req.payload.genres_own &amp;&amp; !req.payload.genres_own.push) {
+            req.payload.genres_own = [req.payload.genres_own];
+        }
+        var endpoint = template == 'fan' ? 'fans' : 'artists';
+        Q.allSettled([
+            api.put('/' + endpoint + '/validate', req.payload, token),
+            handleUpload(req.payload.file, req.resources.profile.slug)
+        ])
+            .then(function (data) {
+                // throw error and save payload
+                if (data[1] &amp;&amp; typeof (data[1].value) == 'string') {
+                    data[1].value = JSON.parse(data[1].value);
+                }
+                if (data[1] &amp;&amp; data[1].value &amp;&amp; data[1].value.filename) {
+                    req.payload.picture = data[1].value.filename;
+                }
+                if (data[0].state == 'rejected' || data[1].state == 'rejected') {
+                    // we modify and merge our errors
+                    var err = {};
+                    if (data[0] &amp;&amp; data[0].state == 'rejected') {
+                        err = convertErrors(data[0].reason);
+                    }
+                    if (data[1] &amp;&amp; data[1].state == 'rejected') {
+                        err = _.merge(err, {
+                            'file': data[1].reason
+                        });
+                    }
+                    //console.error(err);
+                    console.log(err);
+                    req.payload._id = req.params.songId;
+
+                    req.session.flash('error', err);
+                    console.log(JSON.stringify(req.payload, null, 2));
+                    req.session.flash('payload', req.payload);
+                    return reply().redirect(req.url.pathname);
+                } else {
+                    return updateProfile(req.payload, token);
+                }
+            })
+            .then(function (data) {
+                var wasComplete = req.isComplete;
+
+                req.isComplete = data.isComplete;
+                if (req.isComplete &amp;&amp; !req.session.get('isComplete') || data.isComplete) {
+                    req.session.set('isComplete', true);
+                }
+                req.isVerified = data.verified;
+                if (req.isVerified &amp;&amp; !req.session.get('isVerified') || data.verified) {
+                    req.session.set('isVerified', true);
+                }
+                var profile = req.resources.profile;
+
+                if (data.name) {
+                    profile.name = data.name;
+                }
+                if (data.firstname) {
+                    profile.firstname = data.firstname;
+                }
+                if (data.lastname) {
+                    profile.lastname = data.lastname;
+                }
+                if (data.picture) {
+                    profile.picture = data.picture;
+                }
+                req.resources.profile = profile;
+
+                if (wasComplete) {
+                    req.session.flash('message', 'edit-' + template + '-success-general');
+                } else {
+                    req.session.flash('message', 'edit-' + template + '-success-general');
+                }
+
+                reply().redirect('/account/profile');
+            })
+            .fail(function (err) {
+                console.error(err);
+                reply(err);
+            })
+            .fail(console.error.bind(console));
+    },
+    /**
+     @function
+     @name  Controllers:Accountjs.participateView
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @param {object} server - Server object
+     * @description Checks  isVerified, Token, type(FAN or ARTIST) from session
+     * then renders account if type = FAN OR profile/participate-contest view if type = ARTIST
+    **/
+    participateView: function (req, reply, server) {
+        if (!req.isVerified) {
+            reply().redirect('/account');
+        }
+        var token = req.session.get('token'),
+            payload = req.session.flash('payload')[0] || {};
+
+        if (!token) {
+            reply().redirect('/');
+        }
+        if (req.session.get('type') == 'fan') {
+            reply().redirect('/account');
+        }
+        //if (payload &amp;&amp; payload.contact)
+        //payload.profile.contact = payload.contact;
+
+        if (payload &amp;&amp; payload.addVideo) {
+            payload.video._id = payload.addVideo.id;
+        }
+        Q.all([
+            api.get('/profile', token),
+            api.get('/config/genres'),
+            api.get('/config/countries'),
+            api.get('/config/currencies'),
+            api.get('/profile/videos', token)
+        ]).spread(function (profile, genres, countries, currencies, videos) {
+            var viewData = {
+                metatags: {
+                    title: server.i18n.__('meta-title-participate-contest')
+                },
+                user: payload.profile || profile,
+                genres: genres,
+                countries: countries,
+                song: payload.song || {},
+                video: payload.video || _.filter(videos, function (video) {
+                    return video.category == 'call';
+                })[0] || {},
+                hasActiveProject: req.resources.hasActiveProject,
+                error: req.session.flash('error')[0] || false
+            };
+
+            if (!viewData.user.contact) {
+                viewData.user.contact = {};
+            }
+            viewData.paypal = {
+                email: profile.paypal_email,
+                firstname: profile.paypal_firstname,
+                lastname: profile.paypal_lastname,
+                verified: profile.paypal_verified,
+                currency: profile.paypal_currency,
+                supported_currencies: currencies,
+                currencies: profile.paypal_currencies,
+                country: profile.country ? profile.country : getCountry(req)
+            };
+            reply.view('profile/participate-contest', viewData);
+        })
+            .fail(console.error.bind(console));
+    },
+    /**
+     @function
+     @name Controllers:Accountjs.participatePost
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+    **/
+    participatePost: function (req, reply) {
+        if (!req.isVerified) {
+            reply().redirect('/account');
+        }
+        var token = req.session.get('token');
+
+        req.payload.song.tags = req.payload.song.tags.split(',');
+
+        if (req.payload.song.genres &amp;&amp; !req.payload.song.genres.push) {
+            req.payload.song.genres = [req.payload.song.genres];
+        }
+        if (req.payload.profile.genres_music &amp;&amp; !req.payload.profile.genres_music.push) {
+            req.payload.profile.genres_music = [req.payload.profile.genres_music];
+        }
+        if (req.payload.profile.genres_own &amp;&amp; !req.payload.profile.genres_own.push) {
+            req.payload.profile.genres_own = [req.payload.profile.genres_own];
+        }
+        if (req.payload.contact) {
+            req.payload.profile.contact = req.payload.contact;
+        }
+        if (req.payload.song.order === '') {
+            delete req.payload.song.order;
+        }
+        Q.allSettled([
+            handleUpload(req.payload.profile.file, req.resources.profile.slug),
+            handleUploadSong(req.payload.song.file)
+        ])
+            .then(function (data) {
+                // items should only be saved when EVERYTHING validates correctly,
+                // so we need to call the validate routes first
+                var endpoints = [
+                    api.put('/artists/validate', req.payload.profile, token),
+                    api.post('/profile/songs/validate', req.payload.song, token)
+                ];
+
+                if (req.payload.video &amp;&amp; req.payload.video.youtubeUrl) {
+                    endpoints.push(api[req.payload.addVideo.method]('/profile/videos/validate', req.payload.video, token));
+                }
+                var fileError = {};
+                if (data &amp;&amp; data[0].value &amp;&amp; data[0].value.statusCode) {
+                    fileError.picture = data[0];
+                } else if (data &amp;&amp; data[0].value &amp;&amp; !data[0].value.statusCode) {
+                    data[0].value = JSON.parse(data[0].value);
+                }
+
+                if (data &amp;&amp; data[1].value &amp;&amp; data[1].value.statusCode) {
+                    fileError.audio = data[1].value;
+                } else if (data &amp;&amp; data[1].value &amp;&amp; !data[1].value.statusCode) {
+                    data[1].value = JSON.parse(data[1].value);
+                }
+
+                //if ()
+                if (data &amp;&amp; data[0] &amp;&amp; data[0].value &amp;&amp; data[0].value.filename) {
+                    req.payload.profile.picture = data[0].value.filename;
+                }
+                if (data &amp;&amp; data[1] &amp;&amp; data[1].value &amp;&amp; data[1].value.filename) {
+                    req.payload.song.audiofile = data[1].value.filename;
+                }
+                Q.allSettled(endpoints)
+                    .then(function (data2) {
+                        var err = {},
+                            keys = ['profile', 'song', 'video'],
+                            rejected = false;
+
+                        data2.some(function (d, i) {
+                            if (d.reason &amp;&amp; !d.reason.data) {
+                                d.reason.data = [{
+                                    message: 'youtubeUrl is already active',
+                                    path: 'youtubeUrl',
+                                    type: 'string.duplicated'
+                                }];
+                            }
+
+                            if (d.state == 'rejected' &amp;&amp; d.reason.data) {
+                                rejected = true;
+                                err[keys[i]] = convertErrors(d.reason);
+                            }
+                        });
+
+                        err = _.merge(err, fileError);
+                        if (rejected) {
+                            console.error(err);
+                            //err.debug = JSON.stringify(err);
+                            req.session.flash('error', err);
+                            req.session.flash('payload', req.payload);
+                            reply().redirect('/account/participate-contest');
+                        } else {
+                            var endpoints = [
+                                api.put('/profile', req.payload.profile, token),
+                                api.post('/profile/songs', req.payload.song, token)
+                            ];
+
+                            /*if (req.payload.video.youtubeUrl != '')
+                        endpoints.push(api[req.payload.addVideo.method](req.payload.addVideo.id ? '/profile/videos/' + req.payload.addVideo.id : '/profile/videos', req.payload.video, token));*/
+
+                            Q.allSettled(endpoints)
+                                .then(function (data) {
+                                    req.isComplete = data[0].value.isComplete;
+                                    if (req.isComplete &amp;&amp; !req.session.get('isComplete') || data[0].value.isComplete) {
+                                        req.session.set('isComplete', true);
+                                    }
+                                    req.isVerified = data[0].value.verified;
+                                    if (req.isVerified &amp;&amp; !req.session.get('isVerified') || data[0].value.verified) {
+                                        req.session.set('isVerified', true);
+                                    }
+                                    var profile = req.resources &amp;&amp; req.resources.profile ? req.resources.profile : false;
+                                    profile.picture = data[0].value.picture;
+                                    req.session.set('profile', profile);
+
+                                    api.put('/profile/songs/' + data[1].value._id + '/nominate', {}, token)
+                                        .then(function (data) {
+                                            console.log('nominated');
+                                        })
+                                        .fail(console.error.bind(console));
+
+                                    api.get('/profile/songs', req.session.get('token')).then(function (response) {
+                                        var songs = response.songs;
+                                        var pending = songs.filter(function (s) {
+                                            return s.state == 'pending';
+                                        });
+                                        req.session.flash('first-participation', songs.length == 1 &amp;&amp; pending.length == 1);
+                                        reply().redirect('/account/songs');
+                                    }).fail(function (err) {
+                                        console.error(err);
+                                        console.error(err.stack);
+                                        reply(err);
+                                    });
+                                    //reply().redirect('/account');
+                                })
+                                .fail(function (err) {
+                                    reply(err);
+                                })
+                                .fail(function (error) {
+                                    console.error.bind(error);
+                                });
+                        }
+                    });
+            })
+            .fail(function (err) {
+                console.error(err);
+                reply(err);
+            });
+    },
+    /**
+     @function
+     @name Controllers:Accountjs.createPromoteSongView
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @param {object} server - Server object
+     * @description Checks  isVerified, Token, type(FAN or ARTIST) from session
+     * then renders profile/add-song view
+    **/
+    createPromoteSongView: function (req, reply, server) {
+        if (!req.isVerified) {
+            reply().redirect('/account');
+        }
+        var token = req.session.get('token'),
+            payload = req.session.flash('payload')[0] || {};
+
+        if (!token) {
+            reply().redirect('/');
+        }
+        if (req.session.get('type') == 'fan') {
+            reply().redirect('/account');
+        }
+        //if (payload &amp;&amp; payload.contact)
+        //payload.profile.contact = payload.contact;
+
+        Q.allSettled([
+            api.get('/profile', token),
+            api.get('/config/genres'),
+            api.get('/config/countries')
+        ]).then(function (data) {
+            var data1 = {
+                metatags: {
+                    title: server.i18n.__('meta-title-add-song')
+                },
+                user: payload.profile || data[0].value,
+                genres: data[1].value,
+                countries: data[2].value,
+                song: payload.song || {},
+                error: req.session.flash('error')[0] || false
+            };
+
+            if (!data1.user.contact) {
+                data1.user.contact = {};
+            }
+            reply.view('profile/add-song', data1);
+        })
+            .fail(console.error.bind(console));
+    },
+    /**
+     @function
+     @name Controllers:Accountjs.createPromoteSongPost
+     * @param {object} req - Request object
+     * @param {interface} reply - hapi reply interface
+     * @param {object} server - Server object
+     * @description Checks  isVerified, Token, type(FAN or ARTIST) from session
+     * then renders profile/add-song-success view
+    **/
+    createPromoteSongPost: function (req, reply) {
+        if (!req.isVerified) {
+            reply().redirect('/account');
+        }
+        var token = req.session.get('token');
+
+        req.payload.song.tags = req.payload.song.tags.split(',');
+
+        if (req.payload.song.genres &amp;&amp; !req.payload.song.genres.push) {
+            req.payload.song.genres = [req.payload.song.genres];
+        }
+        if (req.payload.profile.genres_music &amp;&amp; !req.payload.profile.genres_music.push) {
+            req.payload.profile.genres_music = [req.payload.profile.genres_music];
+        }
+        if (req.payload.profile.genres_own &amp;&amp; !req.payload.profile.genres_own.push) {
+            req.payload.profile.genres_own = [req.payload.profile.genres_own];
+        }
+        if (req.payload.contact) {
+            req.payload.profile.contact = req.payload.contact;
+        }
+        if (req.payload.song.order === '') {
+            delete req.payload.song.order;
+        }
+        Q.allSettled([
+            handleUpload(req.payload.profile.file, req.resources.profile.slug),
+            handleUploadSong(req.payload.song.file)
+        ])
+            .then(function (data) {
+                // items should only be saved when EVERYTHING validates correctly,
+                // so we need to call the validate routes first
+
+                var fileError = {};
+                if (data &amp;&amp; data[0] !== undefined &amp;&amp; data[0].value &amp;&amp; data[0].value.statusCode) {
+                    fileError.picture = data[0];
+                } else if (data &amp;&amp; data[0] &amp;&amp; data[0].value &amp;&amp; !data[0].value.statusCode) {
+                    data[0].value = JSON.parse(data[0].value);
+                }
+
+                if (data &amp;&amp; data[1] !== undefined &amp;&amp; data[1].value &amp;&amp; data[1].value.statusCode) {
+                    fileError.audio = data[1].value;
+                } else if (data &amp;&amp; data[1] &amp;&amp; data[1].value &amp;&amp; !data[1].value.statusCode) {
+                    data[1].value = JSON.parse(data[1].value);
+                }
+
+                if (data &amp;&amp; data[0] &amp;&amp; data[0].value &amp;&amp; data[0].value.filename) {
+                    req.payload.profile.picture = data[0].value.filename;
+                }
+                if (data &amp;&amp; data[1] &amp;&amp; data[1].value &amp;&amp; data[1].value.filename) {
+                    req.payload.song.audiofile = data[1].value.filename;
+                }
+                req.payload.profile.skip_paypal = true;
+                Q.allSettled([
+                    api.put('/artists/validate', req.payload.profile, token),
+                    api.post('/profile/songs/validate', req.payload.song, token)
+                ])
+                    .then(function (data2) {
+                        var err = {},
+                            keys = ['profile', 'song'],
+                            rejected = false;
+
+                        data2.some(function (d, i) {
+                            if (d.state == 'rejected' &amp;&amp; d.reason.data) {
+                                rejected = true;
+                                err[keys[i]] = convertErrors(d.reason);
+                            }
+                        });
+
+                        err = _.merge(err, fileError);
+                        if (rejected) {
+                            console.error(err);
+
+                            if (config.debug) {
+                                err.debug = JSON.stringify(err);
+                            }
+                            req.session.flash('error', err);
+                            req.session.flash('payload', req.payload);
+                            reply().redirect('/account/add-song');
+                        } else {
+                            Q.all([
+                                api.put('/profile', req.payload.profile, token),
+                                api.post('/profile/songs', req.payload.song, token)
+                            ])
+                                .then(function (data) {
+                                    req.isComplete = data[0].isComplete;
+                                    if (req.isComplete &amp;&amp; !req.session.get('isComplete') || data[0].isComplete) {
+                                        req.session.set('isComplete', true);
+                                    }
+                                    req.isVerified = data[0].verified;
+                                    if (req.isVerified &amp;&amp; !req.session.get('isVerified') || data[0].verified) {
+                                        req.session.set('isVerified', true);
+                                    }
+                                    var profile = req.resources.profile;
+                                    profile.picture = data[0].picture;
+                                    req.resources.profile = profile;
+
+                                    reply.view('profile/add-song-success');
+                                    //reply().redirect('/account');
+                                })
+                                .fail(function (err) {
+                                    reply(err);
+                                })
+                                .fail(function (error) {
+                                    console.error.bind(error);
+                                });
+                        }
+                    });
+            })
+            .fail(function (err) {
+                console.error(err);
+                reply(err);
+            });
+    }
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="Accountjs.html">Controllers:Accountjs</a></li><li><a href="Activitiesjs.html">Controllers:Activitiesjs</a></li><li><a href="global.html#Controllers:ArtistsController">Controllers:ArtistsController</a></li><li><a href="Front-admin.html">Controllers:Front-admin</a></li><li><a href="PackagesJs.html">Controllers:PackagesJs</a></li><li><a href="PaymentController.html">Controllers:PaymentController</a></li><li><a href="ProjectController.html">Controllers:ProjectController</a></li><li><a href="SongJs.html">Controllers:SongJs</a></li><li><a href="ArtistFans.html">helper:ArtistFans</a></li><li><a href="badgetitle.html">helper:badgetitle</a></li><li><a href="beautyDate.html">helper:beautyDate</a></li><li><a href="beautyNumber.html">helper:beautyNumber</a></li><li><a href="contestOnlyInCFE.html">helper:contestOnlyInCFE</a></li><li><a href="ContestPhase.html">helper:ContestPhase</a></li><li><a href="EarningForVotes.html">helper:EarningForVotes</a></li><li><a href="EncodeBreaks.html">helper:EncodeBreaks</a></li><li><a href="EscapeSingleQuotes.html">helper:EscapeSingleQuotes</a></li><li><a href="getAssets.html">helper:getAssets</a></li><li><a href="getCountry.html">helper:getCountry</a></li><li><a href="getCountryName.html">helper:getCountryName</a></li><li><a href="getCurrency.html">helper:getCurrency</a></li><li><a href="getlocation.html">helper:getlocation</a></li><li><a href="getPricePerVote.html">helper:getPricePerVote</a></li><li><a href="getProjectTitlePrefx.html">helper:getProjectTitlePrefx</a></li><li><a href="GetResizeImage.html">helper:GetResizeImage</a></li><li><a href="isCurrentContestAndPhase.html">helper:isCurrentContestAndPhase</a></li><li><a href="isEuroCountry.html">helper:isEuroCountry</a></li><li><a href="linkify.html">helper:linkify</a></li><li><a href="packageDesc.html">helper:packageDesc</a></li><li><a href="removeHttp.html">helper:removeHttp</a></li><li><a href="Sum.html">helper:Sum</a></li><li><a href="SupportCurrency.html">helper:SupportCurrency</a></li><li><a href="Activity.html">lib:Activity</a></li><li><a href="Api.html">lib:Api</a></li><li><a href="cached-ressoure.html">lib:cached-ressoure</a></li><li><a href="checkLastModified.html">lib:checkLastModified</a></li><li><a href="converterror.html">lib:converterror</a></li><li><a href="facebook.html">lib:facebook</a></li><li><a href="fileupload.html">lib:fileupload</a></li><li><a href="getFbConfig.html">lib:getFbConfig</a></li><li><a href="getVouchersVoteLfet.html">lib:getVouchersVoteLfet</a></li><li><a href="grabRandomFan.html">lib:grabRandomFan</a></li><li><a href="handleUpload.html">lib:handleUpload</a></li><li><a href="logError.html">lib:logError</a></li><li><a href="logErrorReply.html">lib:logErrorReply</a></li><li><a href="mail-Chimp.html">lib:mail-Chimp</a></li><li><a href="Passport.html">lib:Passport</a></li><li><a href="phaseIsOrWasNP.html">lib:phaseIsOrWasNP</a></li><li><a href="setVerifiedVars.html">lib:setVerifiedVars</a></li><li><a href="Artist-route.html">Routes:Artist-route</a></li><li><a href="Home-route.html">Routes:Home-route</a></li><li><a href="Settings-route.html">Routes:Settings-route</a></li><li><a href="Static-route.html">Routes:Static-route</a></li></ul><h3>Events</h3><ul><li><a href="Artist-route.html#event:GET-add-artist-FB-pages">GET-add-artist-FB-pages</a></li><li><a href="Artist-route.html#event:GET-Artist">GET-Artist</a></li><li><a href="Artist-route.html#event:GET-Artist-artistSlug-active-voucher">GET-Artist-artistSlug-active-voucher</a></li><li><a href="Artist-route.html#event:GET-Artist-artistSlug-details">GET-Artist-artistSlug-details</a></li><li><a href="Artist-route.html#event:GET-Artist-artistSlug-song-stats">GET-Artist-artistSlug-song-stats</a></li><li><a href="Artist-route.html#event:GET-Artist-badges">GET-Artist-badges</a></li><li><a href="Artist-route.html#event:GET-Artist-old-artistSlug-songslug">GET-Artist-old-artistSlug-songslug</a></li><li><a href="Artist-route.html#event:GET-Artist-packages">GET-Artist-packages</a></li><li><a href="Artist-route.html#event:GET-Artist-random">GET-Artist-random</a></li><li><a href="Artist-route.html#event:GET-Artist-slug-songslug">GET-Artist-slug-songslug</a></li><li><a href="Artist-route.html#event:POST-Artist-artistSlug-notify-missed-vote">POST-Artist-artistSlug-notify-missed-vote</a></li><li><a href="Artist-route.html#event:POST-Artist-id-fan">POST-Artist-id-fan</a></li><li><a href="Artist-route.html#event:POST-artists-facebook-page">POST-artists-facebook-page</a></li><li><a href="Artist-route.html#event:POST-artists-feature">POST-artists-feature</a></li><li><a href="Artist-route.html#event:POST-artists-rate-song">POST-artists-rate-song</a></li><li><a href="Home-route.html#event:GET-Home">GET-Home</a></li><li><a href="Settings-route.html#event:GET-Settings">GET-Settings</a></li><li><a href="Static-route.html#event:GET-static">GET-static</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-alpha5</a> on Wed Jun 17 2015 09:56:39 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
